@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | إدارة المتجر</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Orbitron:wght@500;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --bg-card: #151520;
+            --primary: #00f3ff;
+            --secondary: #bd00ff;
+            --text-light: #ffffff;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+        }
+
+        header {
+            padding: 20px 50px;
+            background: #111;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Orbitron';
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .container {
+            padding: 50px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .ltr-cell {
+            direction: ltr;
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .btn-del {
+            background: crimson;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-refresh {
+            background: var(--secondary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">ADMIN<span>PANEL</span></div>
+        <a href="index.html" class="btn-refresh" style="background: transparent; border: 1px solid white;">العودة
+            للموقع</a>
+    </header>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>المستخدمين المسجلين (Firebase Cloud)</h1>
+            <button onclick="loadData()" class="btn-refresh">تحديث البيانات</button>
+        </div>
+
+        <table id="usersTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>الاسم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>كلمة المرور</th>
+                    <th>تاريخ التسجيل</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:20px;">جاري الاتصال بقاعدة البيانات...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FIREBASE INTEGRATION -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ============================================
+        // ⚠️ هام: ضع نفس الإعدادات هنا أيضاً
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHqeC8La8lBo-p_QGW6Fwe44Cg72-18J4",
+            authDomain: "flutter-ai-playground-5eabd.firebaseapp.com",
+            projectId: "flutter-ai-playground-5eabd",
+            storageBucket: "flutter-ai-playground-5eabd.firebasestorage.app",
+            messagingSenderId: "553911855982",
+            appId: "1:553911855982:web:19abd959da5a30d26caf7f"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (e) { console.error(e); }
+
+        window.loadData = async function () {
+            if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:crimson; padding:20px;">⚠️ لم يتم وضع مفاتيح Firebase في الكود!</td></tr>';
+                return;
+            }
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">جاري التحميل...</td></tr>';
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                tbody.innerHTML = '';
+
+                if (querySnapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">لا يوجد بيانات في السحابة</td></tr>';
+                    return;
+                }
+
+                let index = 1;
+                querySnapshot.forEach((docSnap) => {
+                    const user = docSnap.data();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${index++}</td>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td class="ltr-cell" style="color: var(--secondary);">${user.password}</td>
+                        <td class="ltr-cell">${user.joined}</td>
+                        <td><button class="btn-del" onclick="window.delUser('${docSnap.id}')">حذف</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">خطأ: ${error.message}</td></tr>`;
+            }
+        }
+
+        window.delUser = async function (docId) {
+            if (!confirm('هل أنت متأكد من الحذف؟')) return;
+            try {
+                await deleteDoc(doc(db, "users", docId));
+                window.loadData();
+            } catch (e) {
+                alert('خطأ في الحذف: ' + e.message);
+            }
+        }
+
+        // Auto load
+        window.onload = loadData;
+    </script>
+
+</body>
+
+</html>
